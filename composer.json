@@ -1,0 +1,16 @@
+{
+    "name": "dranzd/aquicore-api-php",
+    "description": "Aquicore API client implementation",
+    "authors": [
+        {
+            "name": "Dranzd Viper",
+            "email": "dranzd@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "autoload": {
+        "psr-4": {
+            "Aquicore\\API\\PHP\\": "src"
+        }
+    }
+}
