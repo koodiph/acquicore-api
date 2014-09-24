@@ -14,11 +14,8 @@ use Aquicore\API\PHP\Api\Exception\ClientException;
 use Aquicore\API\PHP\Common\Scopes;
 
 $client = new Client(array(
-    'client_id'     => $client_id,
-    'client_secret' => $client_secret,
-    'username'      => $test_username,
-    'password'      => $test_password,
-    'scope'         => Scopes::SCOPE_READ_STATION,
+    'username' => $client_username,
+    'password' => $client_password,
 ));
 
 //Test if code is provided in get parameters (that means user has already accepted the app and has been redirected here)
