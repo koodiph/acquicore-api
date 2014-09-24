@@ -4,7 +4,7 @@
  * Authentication to Aquicore Server with the authorization grant
  * This script has to be hosted by your web server in order to make it work
  */
-var_dump($_GET, $_POST);die();
+
 include __DIR__ . '/../../vendor/autoload.php';
 include __DIR__ . '/../config.php';
 
@@ -16,6 +16,8 @@ use Aquicore\API\PHP\Common\Scopes;
 $client = new Client(array(
     'client_id'     => $client_id,
     'client_secret' => $client_secret,
+    'username'      => $test_username,
+    'password'      => $test_password,
     'scope'         => Scopes::SCOPE_READ_STATION,
 ));
 
@@ -33,6 +35,7 @@ if (isset($_GET["code"]))
         echo "Reason : ".$ex->getMessage()."\n";
         die();
     }
+
     try
     {
         $helper = new Helper($client);

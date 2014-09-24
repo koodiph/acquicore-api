@@ -5,15 +5,13 @@ namespace Aquicore\API\PHP\Api;
 use Aquicore\API\PHP\Common\RestErrorCode;
 
 define('CURL_ERROR_TYPE',       0);
-define('API_ERROR_TYPE',        1);//error return from api
+define('API_ERROR_TYPE',        1); //error return from api
 define('INTERNAL_ERROR_TYPE',   2); //error because internal state is not consistent
 define('JSON_ERROR_TYPE',       3);
 define('NOT_LOGGED_ERROR_TYPE', 4); //unable to get access token
 
-define('BACKEND_BASE_URI',         'http://aquicore.com/');
-define('BACKEND_SERVICES_URI',     'http://aquicore.com/api');
-define('BACKEND_ACCESS_TOKEN_URI', 'https://aquicore.com/session/login');
-define('BACKEND_AUTHORIZE_URI',    'https://aquicore.com/oauth2/authorize');
+define('BACKEND_BASE_URI', 'http://my.aquicore.com/api/v1');
+define('BACKEND_AUTH_URI', 'http://my.aquicore.com/api/v1/session/login');
 
 /**
  * OAuth2.0 Aquicore client-side implementation.
@@ -59,44 +57,34 @@ class Client
     public function __construct($config = array())
     {
         // If tokens are provided let's store it
-        if (isset($config['authToken']))
-        {
+        if (isset($config['authToken'])) {
             $this->authToken = $config['authToken'];
             unset($authToken);
         }
-        if (isset($config['refresh_token']))
-        {
+        if (isset($config['refresh_token'])) {
             $this->refresh_token = $config['refresh_token'];
         }
 
         // We must set uri first.
         $uri = array(
-            'base_uri'       => BACKEND_BASE_URI,
-            'services_uri'   => BACKEND_SERVICES_URI,
-            'auth_token_uri' => BACKEND_ACCESS_TOKEN_URI,
-            'authorize_uri'  => BACKEND_AUTHORIZE_URI,
+            'base_uri' => BACKEND_BASE_URI,
+            'auth_uri' => BACKEND_AUTH_URI,
         );
-        foreach ($uri as $key => $val)
-        {
-            if (isset($config[$key]))
-            {
+        foreach ($uri as $key => $val) {
+            if (isset($config[$key])) {
                 $this->setVariable($key, $config[$key]);
                 unset($config[$key]);
-            }
-            else
-            {
+            } else {
                 $this->setVariable($key, $val);
             }
         }
 
         // Other else configurations.
-        foreach ($config as $name => $value)
-        {
+        foreach ($config as $name => $value) {
             $this->setVariable($name, $value);
         }
 
-        if ($this->getVariable('code') == null && isset($_GET['code']))
-        {
+        if ($this->getVariable('code') == null && isset($_GET['code'])) {
             $this->setVariable('code', $_GET['code']);
         }
     }
@@ -145,18 +133,17 @@ class Client
 
     private function setTokens($value)
     {
-        if (isset($value['authToken']))
-        {
+        if (isset($value['authToken'])) {
             $this->authToken = $value['authToken'];
             $update = true;
         }
-        if (isset($value['refresh_token']))
-        {
+
+        if (isset($value['refresh_token'])) {
             $this->refresh_token = $value['refresh_token'];
             $update = true;
         }
-        if (isset($update))
-        {
+
+        if (isset($update)) {
             $this->updateSession();
         }
     }
@@ -166,19 +153,17 @@ class Client
      */
     public function setTokensFromStore($value)
     {
-        if (isset($value['authToken']))
-        {
+        if (isset($value['authToken'])) {
             $this->authToken = $value['authToken'];
         }
-        if (isset($value['refresh_token']))
-        {
+        if (isset($value['refresh_token'])) {
             $this->refresh_token = $value['refresh_token'];
         }
     }
 
     public function unsetTokens()
     {
-        $this->authToken  = null;
+        $this->authToken     = null;
         $this->refresh_token = null;
     }
 
@@ -186,25 +171,22 @@ class Client
     {
         $cb     = $this->getVariable('func_cb');
         $object = $this->getVariable('object_cb');
-        if ($object && $cb)
-        {
-            if (method_exists($object, $cb))
-            {
+
+        if ($object && $cb) {
+            if (method_exists($object, $cb)) {
                 call_user_func_array(
                     array($object, $cb),
                     array(array(
-                        'authToken'  => $this->authToken,
+                        'authToken'     => $this->authToken,
                         'refresh_token' => $this->refresh_token,
                     ))
                 );
             }
-        }
-        else if ($cb && is_callable($cb))
-        {
+        } elseif ($cb && is_callable($cb)) {
             call_user_func_array(
                 $cb,
                 array(array(
-                    'authToken'  => $this->authToken,
+                    'authToken'     => $this->authToken,
                     'refresh_token' => $this->refresh_token,
                 ))
             );
@@ -228,126 +210,70 @@ class Client
     {
         $ch   = curl_init();
         $opts = self::$CURL_OPTS;
-        if ($params)
-        {
-            switch ($method)
-            {
+        if ($params) {
+            switch ($method) {
                 case 'GET':
                     $path .= '?' . http_build_query($params, NULL, '&');
                     break;
-                // Method override as we always do a POST.
                 default:
-                    if ($this->getVariable('file_upload_support'))
-                    {
-                        $opts[CURLOPT_POSTFIELDS] = $params;
-                    }
-                    else
-                    {
-                        $opts[CURLOPT_POSTFIELDS] = http_build_query($params, NULL, '&');
-                    }
+                    $opts[CURLOPT_POSTFIELDS] = json_encode($params);
                     break;
             }
         }
         $opts[CURLOPT_URL] = $path;
-        // Disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
-        // for 2 seconds if the server does not support this header.
-        if (isset($opts[CURLOPT_HTTPHEADER]))
-        {
-            $existing_headers   = $opts[CURLOPT_HTTPHEADER];
-            $existing_headers[] = 'Expect:';
-            $ip                 = $this->getVariable('ip');
-            if ($ip)
-            {
-                $existing_headers[] = 'CLIENT_IP: '.$ip;
-            }
-            $opts[CURLOPT_HTTPHEADER] = $existing_headers;
-        }
-        else
-        {
-            $opts[CURLOPT_HTTPHEADER] = array('Expect:');
-        }
+
         curl_setopt_array($ch, $opts);
         $result = curl_exec($ch);
 
         $errno = curl_errno($ch);
         // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
-        if ($errno == 60 || $errno == 77)
-        {
+        if ($errno == 60 || $errno == 77) {
             echo "WARNING ! SSL_VERIFICATION has been disabled since ssl error retrieved. ".
                 "Please check your certificate http://curl.haxx.se/docs/sslcerts.html\n";
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
             $result = curl_exec($ch);
         }
 
-        if ($result === FALSE)
-        {
+        if ($result === FALSE) {
             $e = new Exception\CurlErrorTypeException(curl_errno($ch), curl_error($ch));
             curl_close($ch);
             throw $e;
         }
+
         curl_close($ch);
 
         // Split the HTTP response into header and body.
         list($headers, $body) = explode("\r\n\r\n", $result);
         $headers = explode("\r\n", $headers);
+
         //Only 2XX response are considered as a success
-        if (strpos($headers[0], 'HTTP/1.1 2') !== FALSE)
-        {
+        if (strpos($headers[0], 'HTTP/1.1 2') !== FALSE) {
             $decode = json_decode($body, TRUE);
-            if (!$decode)
-            {
-                if (preg_match('/^HTTP\/1.1 ([0-9]{3,3}) (.*)$/', $headers[0], $matches))
-                {
+
+            if (!$decode) {
+                if (preg_match('/^HTTP\/1.1 ([0-9]{3,3}) (.*)$/', $headers[0], $matches)) {
                     throw new Exception\JsonErrorTypeException($matches[1], $matches[2]);
-                }
-                else
-                {
+                } else {
                     throw new Exception\JsonErrorTypeException(200, 'OK');
                 }
             }
+
             return $decode;
-        }
-        else
-        {
-            if (!preg_match('/^HTTP\/1.1 ([0-9]{3,3}) (.*)$/', $headers[0], $matches))
-            {
+
+        } else {
+
+            if (!preg_match('/^HTTP\/1.1 ([0-9]{3,3}) (.*)$/', $headers[0], $matches)) {
                 $matches = array('', 400, 'bad request');
             }
+
             $decode = json_decode($body, TRUE);
-            if (!$decode)
-            {
+
+            if (!$decode) {
                 throw new Exception\ApiErrorTypeException($matches[1], $matches[2], null);
             }
+
             throw new Exception\ApiErrorTypeException($matches[1], $matches[2], $decode);
         }
-    }
-
-    /**
-     * Get url to redirect to oauth2.0 aquicore authorize endpoint
-     * This is the url where app server needing aquicore access need to route their user (via redirect)
-     *
-     * @param scope
-     *   scope used here
-     * @param state
-     *   state returned in redirect_uri
-     */
-    public function getAuthorizeUrl($state = null)
-    {
-        $redirect_uri = $this->getRedirectUri();
-        if ($state == null)
-        {
-            $state = rand();
-        }
-        $scope = $this->getVariable('scope');
-        $params = array(
-            'scope'         => $scope,
-            'state'         => $state,
-            'client_id'     => $this->getVariable('client_id'),
-            'client_secret' => $this->getVariable('client_secret'),
-            'response_type' => 'code',
-            'redirect_uri'  => $redirect_uri,
-        );
-        return $this->getUri($this->getVariable('authorize_uri'), $params);
     }
 
     /**
@@ -359,18 +285,17 @@ class Client
      */
     public function getAccessToken()
     {
-        if ($this->authToken)
-        {
+        if ($this->authToken) {
             return array('authToken' => $this->authToken);
         }
-        if($this->getVariable('username') && $this->getVariable('password'))
-        {
-            return $this->getAccessTokenFromPassword($this->getVariable('username'), $this->getVariable('password'));
+
+        if ($this->getVariable('username') && $this->getVariable('password')) {
+            return $this->getAccessTokenFromPassword(
+                $this->getVariable('username'), $this->getVariable('password')
+            );
         }
-        else
-        {
-            throw new Exception\InternalErrorTypeException('No access token stored');
-        }
+
+        throw new Exception\InternalErrorTypeException('No access token stored');
     }
 
     /**
@@ -387,23 +312,22 @@ class Client
      */
     private function getAccessTokenFromPassword($username, $password)
     {
-        if ($this->getVariable('auth_token_uri'))
-        {
-            $response = $this->makeRequest(
-                $this->getVariable('auth_token_uri'),
-                'POST',
-                array(
-                    'username' => $username,
-                    'password' => $password,
-                )
-            );
-            $this->setTokens($response);
-            return $response;
-        }
-        else
-        {
+        if (!$this->getVariable('auth_uri')) {
             throw new Exception\InternalErrorTypeException('missing args for getting password grant');
         }
+
+        $response = $this->makeRequest(
+            $this->getVariable('auth_uri'),
+            'POST',
+            array(
+                'user'     => $username,
+                'password' => $password,
+            )
+        );
+
+        $this->setTokens($response);
+
+        return $response;
     }
 
     /**
@@ -425,57 +349,42 @@ class Client
      */
     protected function makeOAuth2Request($path, $method = 'GET', $params = array(), $reget_token = true)
     {
-        try
-        {
+        try {
             $res = $this->getAccessToken();
-        }
-        catch(Exception\ApiErrorTypeException $ex)
-        {
+        } catch(Exception\ApiErrorTypeException $ex) {
             throw new Exception\NotLoggedErrorTypeException($ex->getCode(), $ex->getMessage());
         }
-        $params['authToken'] = $res['authToken'];
-        try
-        {
-            $res = $this->makeRequest($path, $method, $params);
-            return $res;
-        }
-        catch(Exception\ApiErrorTypeException $ex)
-        {
-            if ($reget_token == true)
-            {
-                switch ($ex->getCode())
-                {
-                    case RestErrorCode::INVALID_ACCESS_TOKEN:
-                    case RestErrorCode::ACCESS_TOKEN_EXPIRED:
-                        //Ok token has expired let's retry once
-                        if ($this->refresh_token)
-                        {
-                            try
-                            {
-                                $this->getAccessTokenFromRefreshToken();//exception will be thrown otherwise
-                            }
-                            catch(\Exception $ex2)
-                            {
-                                //Invalid refresh token TODO: Throw a special exception
-                                throw $ex;
-                            }
-                        }
-                        else
-                        {
-                            throw $ex;
-                        }
 
-                        return $this->makeOAuth2Request($path, $method, $params, false);
-                    break;
-                    default:
-                        throw $ex;
-                }
-            }
-            else
-            {
+        $params['authToken'] = $res['authToken'];
+
+        try {
+            $res = $this->makeRequest($path, $method, $params);
+        } catch(Exception\ApiErrorTypeException $ex) {
+            if ($reget_token != true) {
                 throw $ex;
             }
+            switch ($ex->getCode()) {
+                case RestErrorCode::INVALID_ACCESS_TOKEN:
+                    // NO BREAK
+                case RestErrorCode::ACCESS_TOKEN_EXPIRED:
+                    //Ok token has expired let's retry once
+                    if (!$this->refresh_token) {
+                        throw $ex;
+                    }
+                    try {
+                        $this->getAccessTokenFromRefreshToken();//exception will be thrown otherwise
+                    } catch(\Exception $ex2) {
+                        //Invalid refresh token TODO: Throw a special exception
+                        throw $ex;
+                    }
+                    $res = $this->makeOAuth2Request($path, $method, $params, false);
+                    break;
+                    // RETHROW
+                default:
+                    throw $ex;
+            }
         }
+
         return $res;
     }
 
@@ -506,30 +415,22 @@ class Client
      */
     public function api($path, $method = 'GET', $params = array(), $secure = false)
     {
-        if (is_array($method) && empty($params))
-        {
+        if (is_array($method) && empty($params)) {
             $params = $method;
             $method = 'GET';
         }
 
         // json_encode all params values that are not strings.
-        foreach ($params as $key => $value)
-        {
-            if (!is_string($value))
-            {
-                $params[$key] = json_encode($value);
+        foreach ($params as $key => $value) {
+            if (is_string($value)) {
+                continue;
             }
+            $params[$key] = json_encode($value);
         }
 
         $res = $this->makeOAuth2Request($this->getUri($path, array(), $secure), $method, $params);
-        if (isset($res['body']))
-        {
-            return $res['body'];
-        }
-        else
-        {
-            return $res;
-        }
+
+        return isset($res['body']) ? $res['body'] : $res;
     }
 
     /**
@@ -549,108 +450,20 @@ class Client
      */
     public function noTokenApi($path, $method = 'GET', $params = array())
     {
-        if (is_array($method) && empty($params))
-        {
+        if (is_array($method) && empty($params)) {
             $params = $method;
             $method = 'GET';
         }
 
         // json_encode all params values that are not strings.
-        foreach ($params as $key => $value)
-        {
-            if (!is_string($value))
-            {
-                $params[$key] = json_encode($value);
+        foreach ($params as $key => $value) {
+            if (is_string($value)) {
+                continue;
             }
+            $params[$key] = json_encode($value);
         }
 
         return $this->makeRequest($path, $method, $params);
-    }
-
-    /**
-     * Since $_SERVER['REQUEST_URI'] is only available on Apache, we
-     * generate an equivalent using other environment variables.
-     */
-    function getRequestUri()
-    {
-        if (isset($_SERVER['REQUEST_URI'])) {
-            $uri = $_SERVER['REQUEST_URI'];
-        }
-        else
-        {
-            if (isset($_SERVER['argv'])) {
-                $uri = $_SERVER['SCRIPT_NAME'] . '?' . $_SERVER['argv'][0];
-            }
-            else if (isset($_SERVER['QUERY_STRING']))
-            {
-                $uri = $_SERVER['SCRIPT_NAME'] . '?' . $_SERVER['QUERY_STRING'];
-            }
-            else
-            {
-                $uri = $_SERVER['SCRIPT_NAME'];
-            }
-        }
-        // Prevent multiple slashes to avoid cross site requests via the Form API.
-        $uri = '/' . ltrim($uri, '/');
-
-        return $uri;
-    }
-
-    /**
-     * Returns the Current URL.
-     *
-     * @return
-     *   The current URL.
-     */
-    protected function getCurrentUri()
-    {
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on'
-            ? 'https://'
-            : 'http://';
-        $current_uri = $protocol . $_SERVER['HTTP_HOST'] . $this->getRequestUri();
-        $parts = parse_url($current_uri);
-
-        $query = '';
-        if (!empty($parts['query']))
-        {
-            $params = array();
-            parse_str($parts['query'], $params);
-            $params = array_filter($params);
-            if (!empty($params))
-            {
-                $query = '?' . http_build_query($params, NULL, '&');
-            }
-        }
-
-        // Use port if non default.
-        $port = isset($parts['port'])
-            && (
-                ($protocol === 'http://' && $parts['port'] !== 80)
-                || ($protocol === 'https://' && $parts['port'] !== 443)
-            )
-            ? ':' . $parts['port'] : '';
-
-        // Rebuild.
-        return $protocol . $parts['host'] . $port . $parts['path'] . $query;
-    }
-
-    /**
-     * Returns the Current URL.
-     *
-     * @return
-     *   The current URL.
-     */
-    protected function getRedirectUri()
-    {
-        $redirect_uri = $this->getVariable('redirect_uri');
-        if (!empty($redirect_uri))
-        {
-            return $redirect_uri;
-        }
-        else
-        {
-            return $this->getCurrentUri();
-        }
     }
 
     /**
@@ -666,27 +479,25 @@ class Client
      */
     protected function getUri($path = '', $params = array(), $secure = false)
     {
-        $url = $this->getVariable('services_uri') ? $this->getVariable('services_uri') : $this->getVariable('base_uri');
-        if ($secure == true)
-        {
+        $url = $this->getVariable('services_uri')
+            ? $this->getVariable('services_uri')
+            : $this->getVariable('base_uri');
+
+        if ($secure == true) {
             $url = self::strReplaceOnce('http', 'https', $url);
         }
-        if (!empty($path))
-            if (substr($path, 0, 4) == 'http')
-            {
+
+        if (!empty($path)) {
+            if (substr($path, 0, 4) == 'http') {
                 $url = $path;
-            }
-            else if(substr($path, 0, 5) == 'https')
-            {
+            } elseif(substr($path, 0, 5) == 'https') {
                 $url = $path;
-            }
-            else
-            {
+            } else {
                 $url = rtrim($url, '/') . '/' . ltrim($path, '/');
             }
+        }
 
-        if (!empty($params))
-        {
+        if (!empty($params)) {
             $url .= '?' . http_build_query($params, NULL, '&');
         }
 
@@ -695,8 +506,7 @@ class Client
 
     public static function strReplaceOnce($str_pattern, $str_replacement, $string)
     {
-        if (strpos($string, $str_pattern) !== false)
-        {
+        if (strpos($string, $str_pattern) !== false) {
             $occurrence = strpos($string, $str_pattern);
             return substr_replace($string, $str_replacement, strpos($string, $str_pattern), strlen($str_pattern));
         }

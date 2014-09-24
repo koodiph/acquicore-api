@@ -16,11 +16,8 @@ use Aquicore\API\PHP\Common\Scopes;
 $scope = Scopes::SCOPE_READ_STATION;
 
 $client = new Client(array(
-    'client_id'     => $client_id,
-    'client_secret' => $client_secret,
-    'username'      => $test_username,
-    'password'      => $test_password,
-    'scope'         => $scope,
+    'username'      => $client_username,
+    'password'      => $client_password,
 ));
 $helper = new Helper($client);
 
@@ -32,7 +29,7 @@ try {
 }
 
 // Retrieve User Info :
-$user = $helper->api("getuser", "POST");
+$user = $helper->api("/users/me", "GET");
 echo ("-------------\n");
 echo ("- User Info -\n");
 echo ("-------------\n");
