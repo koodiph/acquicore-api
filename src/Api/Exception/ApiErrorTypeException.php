@@ -2,6 +2,8 @@
 
 namespace Aquicore\API\PHP\Api\Exception;
 
+use Aquicore\API\PHP\Common\ErrorType;
+
 class ApiErrorTypeException extends ClientException
 {
     public $http_code;
@@ -15,11 +17,11 @@ class ApiErrorTypeException extends ClientException
         $this->result       = $result;
         if (isset($result['error']) && is_array($result['error']) && isset($result['error']['code']))
         {
-            parent::__construct($result['error']['code'], $result['error']['message'], API_ERROR_TYPE);
+            parent::__construct($result['error']['code'], $result['error']['message'], ErrorType::API_ERROR_TYPE);
         }
         else
         {
-            parent::__construct($code, $message, API_ERROR_TYPE);
+            parent::__construct($code, $message, ErrorType::API_ERROR_TYPE);
         }
     }
 }

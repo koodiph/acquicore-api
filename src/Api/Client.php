@@ -4,15 +4,6 @@ namespace Aquicore\API\PHP\Api;
 
 use Aquicore\API\PHP\Common\RestErrorCode;
 
-define('CURL_ERROR_TYPE',       0);
-define('API_ERROR_TYPE',        1); //error return from api
-define('INTERNAL_ERROR_TYPE',   2); //error because internal state is not consistent
-define('JSON_ERROR_TYPE',       3);
-define('NOT_LOGGED_ERROR_TYPE', 4); //unable to get access token
-
-define('BACKEND_BASE_URI', 'http://my.aquicore.com/api/v1');
-define('BACKEND_AUTH_URI', 'http://my.aquicore.com/api/v1/session/login');
-
 /**
  * OAuth2.0 Aquicore client-side implementation.
  */
@@ -38,6 +29,9 @@ class Client
         CURLOPT_SSL_VERIFYPEER => TRUE,
         CURLOPT_HTTPHEADER     => array('Accept: application/json'),
     );
+
+    const BACKEND_BASE_URI = 'http://my.aquicore.com/api/v1';
+    const BACKEND_AUTH_URI = 'http://my.aquicore.com/api/v1/session/login';
 
     /**
      * Initialize a NA OAuth2.0 Client.
@@ -67,8 +61,8 @@ class Client
 
         // We must set uri first.
         $uri = array(
-            'base_uri' => BACKEND_BASE_URI,
-            'auth_uri' => BACKEND_AUTH_URI,
+            'base_uri' => static::BACKEND_BASE_URI,
+            'auth_uri' => static::BACKEND_AUTH_URI,
         );
         foreach ($uri as $key => $val) {
             if (isset($config[$key])) {

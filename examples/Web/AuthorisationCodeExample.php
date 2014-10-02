@@ -37,7 +37,7 @@ if (isset($_GET["code"]))
     {
         $helper = new Helper($client);
 
-        $user = $helper->api("getuser", "POST");
+        $user = $helper->api('/users/me', 'GET');
         $devicelist = $helper->simplifyDeviceList();
         $mesures = $helper->getLastMeasures($client,$devicelist);
 ?>
